@@ -141,6 +141,7 @@ class Configuration implements ConfigurationInterface
                                     ->arrayNode('parameters')
                                         ->children()
                                             ->scalarNode('password')->defaultNull()->end()
+                                            ->scalarNode('database')->defaultNull()->end()
                                         ->end()
                                     ->end()
                                 ->end()
