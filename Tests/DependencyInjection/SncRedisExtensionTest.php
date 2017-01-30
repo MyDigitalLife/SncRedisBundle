@@ -323,6 +323,31 @@ class SncRedisExtensionTest extends \PHPUnit_Framework_TestCase
         $masterParameters = $container->getDefinition((string)$parameters[0])->getArgument(0);
         $this->assertEquals('sentinel', $masterParameters['replication']);
         $this->assertEquals('mymaster', $masterParameters['service']);
+        $this->assertArrayNotHasKey('parameters', $masterParameters);
+
+        $this->assertInternalType('array', $container->findTaggedServiceIds('snc_redis.client'));
+        $this->assertEquals(
+            ['snc_redis.default' => [['alias' => 'default']]],
+            $container->findTaggedServiceIds('snc_redis.client')
+        );
+    }
+
+    public function testSentinelOptionWithPassword()
+    {
+        $extension = new SncRedisExtension();
+        $config = $this->parseYaml($this->getSentinelYamlConfigWithPassword());
+        $extension->load([$config], $container = $this->getContainer());
+
+        $options = $container->getDefinition('snc_redis.client.default_options')->getArgument(0);
+        $this->assertEquals('sentinel', $options['replication']);
+        $this->assertEquals('mymaster', $options['service']);
+        $parameters = $container->getDefinition('snc_redis.default')->getArgument(0);
+        $this->assertEquals('snc_redis.connection.master_parameters.default', (string)$parameters[0]);
+        $masterParameters = $container->getDefinition((string)$parameters[0])->getArgument(0);
+        $this->assertEquals('sentinel', $masterParameters['replication']);
+        $this->assertEquals('mymaster', $masterParameters['service']);
+        $this->assertArrayHasKey('parameters', $masterParameters);
+        $this->assertEquals(2, $masterParameters['parameters']['database']);
 
         $this->assertInternalType('array', $container->findTaggedServiceIds('snc_redis.client'));
         $this->assertEquals(
@@ -502,6 +527,24 @@ clients:
         options:
             replication: sentinel
             service: mymaster
+EOF;
+    }
+
+    private function getSentinelYamlConfigWithPassword()
+    {
+        return <<<'EOF'
+clients:
+    default:
+        type: predis
+        alias: default
+        dsn:
+            - redis://localhost?alias=master
+            - redis://otherhost
+        options:
+            replication: sentinel
+            service: mymaster
+            parameters:
+                database: 2
 EOF;
     }
 
